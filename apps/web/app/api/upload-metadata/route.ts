@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Pinata API configuration
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
-const PINATA_SECRET_API_KEY = process.env.PINATA_API_SECRT;
+const PINATA_SECRET_API_KEY = process.env.PINATA_API_SECRET;
 const PINATA_JWT = process.env.PINATA_JWT;
 
 export async function POST(request: NextRequest) {
@@ -74,7 +74,12 @@ export async function POST(request: NextRequest) {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
+            let errorText = "";
+            try {
+                errorText = await response.text();
+            } catch (e) {
+                errorText = "Unknown error";
+            }
             console.error("Pinata upload failed:", response.status, errorText);
             return NextResponse.json(
                 {
@@ -84,7 +89,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const result = await response.json();
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            console.error("Failed to parse Pinata response as JSON", e);
+            return NextResponse.json(
+                { error: "Pinata returned invalid JSON response" },
+                { status: 500 }
+            );
+        }
         const ipfsHash = result.IpfsHash;
 
         if (!ipfsHash) {
