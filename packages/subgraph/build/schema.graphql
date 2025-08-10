@@ -1,0 +1,93 @@
+type CoinCreated @entity(immutable: true) {
+    id: Bytes!
+    caller: Caller!
+    payoutRecipient: Bytes! # address
+    platformReferrer: Bytes! # address
+    currency: Bytes! @index # address
+    uri: String! # string
+    name: String! # string
+    symbol: String! # string
+    coin: Bytes! # address
+    pool: Bytes! # address
+    version: String! # string
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type Caller @entity(immutable: true) {
+    id: Bytes!
+    coinsCreated: [CoinCreated!]! @derivedFrom(field: "caller")
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type Initialized @entity(immutable: true) {
+    id: Bytes!
+    version: BigInt! # uint64
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+    id: Bytes!
+    previousOwner: Bytes! # address
+    newOwner: Bytes! # address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type Upgraded @entity(immutable: true) {
+    id: Bytes!
+    implementation: Bytes! # address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+# Timeseries entity for individual coin creation events
+type CoinCreationEvent @entity(timeseries: true) {
+    id: Int8! # Auto-incremented ID by graph-node
+    timestamp: Timestamp! # Auto-set to block timestamp by graph-node
+    coin: Bytes! # The address of the created coin
+    caller: Bytes! # The address of the creator
+    currency: Bytes!
+    # Add any other fields from CoinCreated you want to store in raw timeseries data
+    # e.g., name: String!, symbol: String!
+}
+
+# Aggregation entity for coin creation statistics
+type CoinCreationStats
+    @aggregation(intervals: ["hour", "day"], source: "CoinCreationEvent") {
+    id: Int8! # Auto-generated ID based on interval and timestamp
+    timestamp: Timestamp! # Start of the aggregation interval
+    coinCount: BigInt! @aggregate(fn: "count") # Total coins created in the interval
+    # We can add dimensions here if needed, for example, to count coins per caller
+    caller: Bytes! # This would make it stats per caller per interval
+}
+
+# Individual coin contract events
+type Transfer @entity(immutable: true) {
+    id: Bytes!
+    from: Bytes! # address
+    to: Bytes! # address
+    value: BigInt! # uint256
+    contract: Bytes! # The coin contract address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type Approval @entity(immutable: true) {
+    id: Bytes!
+    owner: Bytes! # address
+    spender: Bytes! # address
+    value: BigInt! # uint256
+    contract: Bytes! # The coin contract address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}

@@ -14,92 +14,104 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {BaseCoin} from "./BaseCoin.sol";
 
 contract CreatorCoin is ICreatorCoin, BaseCoin {
-    uint256 public vestingStartTime;
-    uint256 public vestingEndTime;
-    uint256 public totalClaimed;
+        uint256 public vestingStartTime;
+            uint256 public vestingEndTime;
+                uint256 public totalClaimed;
 
-    constructor(
-        address _protocolRewardRecipient,
-        address _protocolRewards,
-        IPoolManager _poolManager,
-        address _airlock
-    ) BaseCoin(_protocolRewardRecipient, _protocolRewards, _poolManager, _airlock) initializer {}
+                    constructor(
+                                address _protocolRewardRecipient,
+                                        address _protocolRewards,
+                                                IPoolManager _poolManager,
+                                                        address _airlock
+                    ) BaseCoin(_protocolRewardRecipient, _protocolRewards, _poolManager, _airlock) initializer {}
 
-    function initialize(
-        address payoutRecipient_,
-        address[] memory owners_,
-        string memory tokenURI_,
-        string memory name_,
-        string memory symbol_,
-        address platformReferrer_,
-        address currency_,
-        PoolKey memory poolKey_,
-        uint160 sqrtPriceX96,
-        PoolConfiguration memory poolConfiguration_
-    ) public override(BaseCoin, ICoin) {
-        require(currency_ == CreatorCoinConstants.CURRENCY, InvalidCurrency());
+                        function initialize(
+                                    address payoutRecipient_,
+                                            address[] memory owners_,
+                                                    string memory tokenURI_,
+                                                            string memory name_,
+                                                                    string memory symbol_,
+                                                                            address platformReferrer_,
+                                                                                    address currency_,
+                                                                                            PoolKey memory poolKey_,
+                                                                                                    uint160 sqrtPriceX96,
+                                                                                                            PoolConfiguration memory poolConfiguration_
+                        ) public override(BaseCoin, ICoin) {
+                                    require(currency_ == CreatorCoinConstants.CURRENCY, InvalidCurrency());
 
-        super.initialize(payoutRecipient_, owners_, tokenURI_, name_, symbol_, platformReferrer_, currency_, poolKey_, sqrtPriceX96, poolConfiguration_);
+                                            super.initialize(payoutRecipient_, owners_, tokenURI_, name_, symbol_, platformReferrer_, currency_, poolKey_, sqrtPriceX96, poolConfiguration_);
 
-        vestingStartTime = block.timestamp;
-        vestingEndTime = block.timestamp + CreatorCoinConstants.CREATOR_VESTING_DURATION;
-    }
+                                                    vestingStartTime = block.timestamp;
+                                                            vestingEndTime = block.timestamp + CreatorCoinConstants.CREATOR_VESTING_DURATION;
+                        }
 
-    /// @dev The initial mint and distribution of the coin supply.
-    ///      Implements creator coin specific distribution: 500M to liquidity pool, 500M vested to creator.
-    function _handleInitialDistribution() internal override {
-        _mint(address(this), CreatorCoinConstants.TOTAL_SUPPLY);
+                            /// @dev The initial mint and distribution of the coin supply.
+                                ///      Implements creator coin specific distribution: 500M to liquidity pool, 500M vested to creator.
+                                    function _handleInitialDistribution() internal override {
+                                                _mint(address(this), CreatorCoinConstants.TOTAL_SUPPLY);
 
-        _transfer(address(this), address(poolKey.hooks), CreatorCoinConstants.MARKET_SUPPLY);
-    }
+                                                        _transfer(address(this), address(poolKey.hooks), CreatorCoinConstants.MARKET_SUPPLY);
+                                    }
 
-    /// @notice Allows the creator payout recipient to claim vested tokens
-    /// @dev Optimized for frequent calls from Uniswap V4 hooks
-    /// @return claimAmount The amount of tokens claimed
-    function claimVesting() external returns (uint256) {
-        uint256 claimAmount = getClaimableAmount();
+                                        /// @notice Allows the creator payout recipient to claim vested tokens
+                                            /// @dev Optimized for frequent calls from Uniswap V4 hooks
+                                                /// @return claimAmount The amount of tokens claimed
+                                                    function claimVesting() external returns (uint256) {
+                                                                uint256 claimAmount = getClaimableAmount();
 
-        // Early return if nothing to claim (gas efficient for frequent calls)
-        if (claimAmount == 0) {
-            return 0;
-        }
+                                                                        // Early return if nothing to claim (gas efficient for frequent calls)
+                                                                                if (claimAmount == 0) {
+                                                                                                return 0;
+                                                                                }
 
-        // Update total claimed before transfer
-        totalClaimed += claimAmount;
+                                                                                        // Update total claimed before transfer
+                                                                                                totalClaimed += claimAmount;
 
-        // Transfer directly to the payout recipient
-        _transfer(address(this), payoutRecipient, claimAmount);
+                                                                                                        // Transfer directly to the payout recipient
+                                                                                                                _transfer(address(this), payoutRecipient, claimAmount);
 
-        emit CreatorVestingClaimed(payoutRecipient, claimAmount, totalClaimed, vestingStartTime, vestingEndTime);
+                                                                                                                        emit CreatorVestingClaimed(payoutRecipient, claimAmount, totalClaimed, vestingStartTime, vestingEndTime);
 
-        return claimAmount;
-    }
+                                                                                                                                return claimAmount;
+                                                    }
 
-    /// @notice Get currently claimable amount without claiming
-    /// @return The amount that can be claimed right now
-    function getClaimableAmount() public view returns (uint256) {
-        uint256 vestedAmount = _calculateVestedAmount(block.timestamp);
-        return vestedAmount > totalClaimed ? vestedAmount - totalClaimed : 0;
-    }
+                                                        /// @notice Get currently claimable amount without claiming
+                                                            /// @return The amount that can be claimed right now
+                                                                function getClaimableAmount() public view returns (uint256) {
+                                                                            uint256 vestedAmount = _calculateVestedAmount(block.timestamp);
+                                                                                    return vestedAmount > totalClaimed ? vestedAmount - totalClaimed : 0;
+                                                                }
 
-    /// @notice Calculate total vested amount at given timestamp
-    /// @param timestamp The timestamp to calculate vesting for
-    /// @return The total amount vested at the given timestamp
-    function _calculateVestedAmount(uint256 timestamp) internal view returns (uint256) {
-        // Before vesting starts
-        if (timestamp <= vestingStartTime) {
-            return 0;
-        }
+                                                                    /// @notice Calculate total vested amount at given timestamp
+                                                                        /// @param timestamp The timestamp to calculate vesting for
+                                                                            /// @return The total amount vested at the given timestamp
+                                                                                function _calculateVestedAmount(uint256 timestamp) internal view returns (uint256) {
+                                                                                            // Before vesting starts
+                                                                                                    if (timestamp <= vestingStartTime) {
+                                                                                                                    return 0;
+                                                                                                    }
 
-        // After vesting ends - fully vested
-        if (timestamp >= vestingEndTime) {
-            return CreatorCoinConstants.CREATOR_VESTING_SUPPLY;
-        }
+                                                                                                            // After vesting ends - fully vested
+                                                                                                                    if (timestamp >= vestingEndTime) {
+                                                                                                                                    return CreatorCoinConstants.CREATOR_VESTING_SUPPLY;
+                                                                                                                    }
 
-        // Linear vesting: (elapsed_time / total_duration) * total_amount
-        uint256 elapsedTime = timestamp - vestingStartTime;
+                                                                                                                            // Linear vesting: (elapsed_time / total_duration) * total_amount
+                                                                                                                                    uint256 elapsedTime = timestamp - vestingStartTime;
 
-        // Multiply first to avoid precision loss
-        return (CreatorCoinConstants.CREATOR_VESTING_SUPPLY * elapsedTime) / CreatorCoinConstants.CREATOR_VESTING_DURATION;
-    }
+                                                                                                                                            // Multiply first to avoid precision loss
+                                                                                                                                                    return (CreatorCoinConstants.CREATOR_VESTING_SUPPLY * elapsedTime) / CreatorCoinConstants.CREATOR_VESTING_DURATION;
+                                                                                }
+}
+
+                                                                                                                    }
+                                                                                                    }
+                                                                                }
+                                                                }
+                                                                                }
+                                                    }
+                                    }
+                        }
+                        )
+                    )
 }

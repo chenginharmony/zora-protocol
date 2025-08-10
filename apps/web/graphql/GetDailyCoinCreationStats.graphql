@@ -1,0 +1,10 @@
+query GetDailyCoinCreationStats {
+    coinCreateds(orderBy: blockTimestamp, orderDirection: desc, first: 10) {
+        id
+        blockTimestamp
+        name
+        symbol
+        coin
+        uri
+    }
+}
